@@ -1,0 +1,157 @@
+<app-floating-background
+  [primarySrc]="'/employees.svg'"
+  [primaryAlt]="'Employees illustration'"
+  [primaryWrapperClass]="
+    'absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-full w-[95%] opacity-40'
+  "
+></app-floating-background>
+
+<div class="relative flex min-h-screen items-center justify-center">
+  <div
+    class="relative z-10 grid w-full max-w-7xl grid-cols-1 gap-4 lg:grid-cols-2"
+  >
+    <section
+      class="relative hidden h-full w-full overflow-hidden rounded-[30px] text-white lg:flex lg:h-[560px] shadow-2xl backdrop-blur-sm"
+      aria-label="Employee Management"
+    >
+      <div
+        class="absolute inset-0 bg-gradient-to-br from-[#3c1bff]/65 via-[#11163f]/85 to-[#07112a]/95"
+      ></div>
+      <div class="relative z-10 flex h-full flex-col justify-between px-8 py-8">
+        <div class="space-y-2">
+          <span
+            class="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.35em] text-white/75 text-center mx-auto"
+          >
+            Employee Management
+          </span>
+          <h1
+            class="text-balance text-4xl font-semibold leading-tight text-white drop-shadow-xl text-center mx-auto"
+          >
+            Streamline Your Team Operations
+          </h1>
+          <p
+            class="max-w-xl text-lg text-white/70 drop-shadow text-center mx-auto"
+          >
+            Monitor projects, empower your people, and keep everything moving in
+            one place with insights that surface exactly when you need them.
+          </p>
+        </div>
+        <div class="grid gap-4">
+          <div
+            *ngFor="let feature of featureHighlights"
+            class="flex items-center gap-4 rounded-2xl border border-white/15 bg-white/10 px-4 py-4 text-sm text-white/80 backdrop-blur-md"
+          >
+            <span
+              class="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-white/15 text-white"
+            >
+              <svg
+                class="h-4 w-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M5 13l4 4L19 7" />
+              </svg>
+            </span>
+            <div>
+              <p class="text-sm font-semibold text-white">
+                {{ feature.title }}
+              </p>
+              <p class="text-xs text-white/65">{{ feature.description }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section
+      class="relative flex w-full items-stretch justify-center lg:h-[560px]"
+      aria-label="Login form"
+    >
+      <div
+        class="absolute -inset-2 rounded-[34px] bg-gradient-to-r from-[#5a47ff]/45 via-[#a036ff]/40 to-[#ff4fae]/45 opacity-80 blur-3xl"
+        aria-hidden="true"
+      ></div>
+      <div
+        class="relative flex w-full max-w-[440px] flex-col overflow-hidden rounded-[30px] border border-white/15 bg-gradient-to-br from-[#221c64]/95 via-[#261d59]/95 to-[#34154e]/95 p-8 shadow-[0_45px_140px_rgba(10,18,43,0.7)] backdrop-blur-2xl"
+      >
+        <div class="mb-4 flex flex-col items-center text-center">
+          <div
+            class="mb-2 flex h-16 w-16 items-center justify-center rounded-2xl border border-white/20 bg-white/10 shadow-inner shadow-primary/30"
+          >
+            <app-optimized-image
+              src="/favicon.ico"
+              alt="Employee Management"
+              [width]="40"
+              [height]="40"
+              class="h-10 w-10 object-contain"
+              [publicAsset]="true"
+            />
+          </div>
+          <h2 class="text-2xl font-semibold text-white">Let's work together</h2>
+          <p class="mt-2 text-sm text-white/60">
+            Welcome back! Enter your credentials to continue.
+          </p>
+        </div>
+
+        <form class="space-y-5" (submit)="$event.preventDefault()">
+          <div class="space-y-2">
+            <label for="email" class="text-sm font-medium text-white/80"
+              >Username</label
+            >
+            <input
+              type="text"
+              id="username"
+              [(ngModel)]="loginObj.username"
+              name="username"
+              placeholder="Enter your username"
+              required
+              class="input"
+            />
+          </div>
+          <div class="space-y-2">
+            <label for="password" class="text-sm font-medium text-white/80"
+              >Password</label
+            >
+            <input
+              type="password"
+              id="password"
+              [(ngModel)]="loginObj.password"
+              name="password"
+              placeholder="Enter your password"
+              required
+              class="input"
+            />
+          </div>
+          <div
+            class="rounded-2xl border border-white/10 bg-white/5 p-3 text-xs text-white/60"
+          >
+            Test credentials:
+            <span class="font-semibold text-white">
+              username: admin &nbsp;·&nbsp; password: 112233
+            </span>
+          </div>
+          <button
+            type="button"
+            (click)="onLogin()"
+            ubButton
+            size="lg"
+            class="w-full bg-gradient-to-r from-[#6c59ff] via-[#c13fff] to-[#ff58c0] text-base font-semibold text-white shadow-lg shadow-purple-500/30 transition-transform duration-200 hover:-translate-y-[1px] hover:shadow-xl"
+          >
+            Login
+          </button>
+        </form>
+        <div class="mt-8 text-center text-xs text-white/45">
+          By continuing you agree to our
+          <a href="#" class="text-primary hover:text-primary/80">Terms</a> and
+          <a href="#" class="text-primary hover:text-primary/80"
+            >Privacy Policy</a
+          >.
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
