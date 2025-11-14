@@ -2,6 +2,8 @@
 
 A comprehensive, full-stack Employee Management System built with **Angular 18**, featuring real-time dashboards, project tracking, calendar views, Gantt charts, business insights, and API monitoring. This is a production-ready CRUD application demonstrating modern web development practices with serverless architecture.
 
+- **Live-Demo:** [https://employee-project-management.vercel.app/](https://employee-project-management.vercel.app/)
+
 ---
 
 ## 📋 Table of Contents

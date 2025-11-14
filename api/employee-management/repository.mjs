@@ -2379,9 +2379,6 @@ export async function buildScheduleData() {
   await ensureBootstrapData();
 
   const projects = await prisma.project.findMany({
-    where: {
-      archivedAt: null,
-    },
     select: {
       projectId: true,
       projectName: true,
@@ -2393,9 +2390,14 @@ export async function buildScheduleData() {
       milestones: true,
       readinessChecklist: true,
       leadByEmpId: true,
+      archivedAt: true,
     },
     orderBy: { startDate: "asc" },
   });
+
+  const activeProjects = projects.filter(
+    (project) => !project.archivedAt
+  );
 
   const employees = await prisma.employee.findMany({
     select: {
@@ -2411,7 +2413,7 @@ export async function buildScheduleData() {
   const dueDates = [];
   const projectTimelines = [];
 
-  projects.forEach((project) => {
+  activeProjects.forEach((project) => {
     const lead = project.leadByEmpId
       ? employeeMap.get(project.leadByEmpId)
       : null;
