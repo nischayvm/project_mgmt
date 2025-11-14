@@ -1,12 +1,8 @@
 import { handleEmployeeManagementRequest } from "./handler.mjs";
 
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
-
-export default async function handler(request, response) {
-  return handleEmployeeManagementRequest(request, response);
+export default async function handler(req, res) {
+  // Vercel passes req and res, which are Node.js IncomingMessage and ServerResponse
+  // Our handler expects the same format, so we can pass them directly
+  return handleEmployeeManagementRequest(req, res);
 }
 

@@ -14,6 +14,7 @@ const fromEnv = (key: string, fallback: string) => {
 
 export const environment = {
   production: false,
+  appBaseUrl: fromEnv('APP_BASE_URL', 'http://localhost:4200'),
   demoLogin: {
     username: 'admin',
     password: '112233',

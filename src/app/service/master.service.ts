@@ -11,14 +11,14 @@ import {
   IGenerateOverviewDraftRequest,
 } from '../model/interface/master';
 import { Employee } from '../model/class/Employee';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root',
 })
 export class MasterService {
-  // Use your own CORS proxy
-  // corsProxyUrl: string = 'http://localhost:8080/';
-  corsProxyUrl: string = '/api/employee-management/';
+  // Use environment variable for API base URL
+  corsProxyUrl: string = environment.api.baseUrl;
   shouldEncodeProxyTarget = false;
   apiUrl: string = '';
 

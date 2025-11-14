@@ -1869,11 +1869,54 @@ function generateNotificationToken() {
 }
 
 function normalizePathname(url) {
-  const pathname = url.pathname.replace(/^\/+/, "");
-  const parts = pathname.split("/");
+  let pathname = url.pathname || "";
+
+  // Remove leading slashes
+  pathname = pathname.replace(/^\/+/, "");
+
+  // Handle empty pathname
+  if (!pathname) {
+    return "";
+  }
+
+  const parts = pathname.split("/").filter((p) => p.length > 0);
+
+  // On Vercel, the serverless function receives the path relative to the function location
+  // So /api/employee-management/GetProject/5001 becomes /GetProject/5001 in the segments
+  // But request.url might still have the full path, so we need to handle both cases
+
+  // Check if this is already normalized (starts with an action like "GetProject", not "api")
+  if (
+    parts.length > 0 &&
+    parts[0] !== "api" &&
+    parts[0] !== "employee-management"
+  ) {
+    // Already normalized (Vercel case or direct call)
+    return parts.join("/");
+  }
+
+  // Find the index of "employee-management" to know where to start slicing
+  const employeeManagementIndex = parts.findIndex(
+    (p) => p === "employee-management"
+  );
+
+  if (
+    employeeManagementIndex >= 0 &&
+    parts.length > employeeManagementIndex + 1
+  ) {
+    // Skip up to and including "employee-management", take the rest
+    return parts.slice(employeeManagementIndex + 1).join("/");
+  }
+
+  // Localhost case: remove "api" and "employee-management" prefixes
+  // Path structure: /api/employee-management/GetProject/5001
+  // After split: ["api", "employee-management", "GetProject", "5001"]
+  // We want: "GetProject/5001"
   if (parts.length <= 2) {
     return "";
   }
+
+  // Skip first two parts (api, employee-management) and join the rest
   return parts.slice(2).join("/");
 }
 
@@ -2612,13 +2655,49 @@ function buildApiDocumentation(request) {
 }
 
 export async function handleEmployeeManagementRequest(request, response) {
-  const url = new URL(
-    request.url || "",
-    `http://${request.headers.host || "localhost"}`
-  );
+  // Handle Vercel serverless function format
+  // On Vercel, request.url might be the full path or just the segments
+  let requestUrl = request.url || "";
+
+  // Handle relative URLs (Vercel serverless functions)
+  if (!requestUrl.startsWith("http")) {
+    const host = request.headers?.host || request.headers?.Host || "localhost";
+    const protocol =
+      host.includes("localhost") || host.includes("127.0.0.1")
+        ? "http"
+        : "https";
+    // Ensure the path starts with /
+    if (!requestUrl.startsWith("/")) {
+      requestUrl = "/" + requestUrl;
+    }
+    requestUrl = `${protocol}://${host}${requestUrl}`;
+  }
+
+  let url;
+  try {
+    url = new URL(requestUrl);
+  } catch (error) {
+    console.error("[Handler] Invalid URL:", requestUrl, error);
+    return sendJson(
+      response,
+      400,
+      createApiResponse(false, "Invalid request URL"),
+      { value: 400 }
+    );
+  }
+
   const requestPath = normalizePathname(url);
 
-  const [action, rawId] = requestPath.split("/");
+  // Debug logging for troubleshooting (works in both dev and production on Vercel)
+  console.log("[Handler] Request URL:", requestUrl);
+  console.log("[Handler] Pathname:", url.pathname);
+  console.log("[Handler] Normalized path:", requestPath);
+  console.log("[Handler] Method:", request.method);
+  console.log("[Handler] Headers:", JSON.stringify(request.headers));
+
+  const pathParts = requestPath.split("/").filter((p) => p.length > 0);
+  const action = pathParts[0] || "";
+  const rawId = pathParts[1] || "";
   const method = (request.method || "GET").toUpperCase();
 
   // Start timing the request
