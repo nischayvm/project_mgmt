@@ -1,3 +1,8 @@
 {
-  "framework": "angular"
+  "framework": "angular",
+  "functions": {
+    "api/employee-management/[...segments].js": {
+      "maxDuration": 30
+    }
+  }
 }
