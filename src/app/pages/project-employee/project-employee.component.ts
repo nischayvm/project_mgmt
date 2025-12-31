@@ -86,6 +86,8 @@ export class ProjectEmployeeComponent implements OnInit {
   editingAssignmentId: number | null = null;
   showCreatePanel = false;
   pendingDelete: IProjectEmployee | null = null;
+  isSaving = false;
+  isDeleting = false;
 
   ngOnInit(): void {
     this.masterService.getAllProjects().subscribe((projects) => {
@@ -139,16 +141,18 @@ export class ProjectEmployeeComponent implements OnInit {
   }
 
   onSave() {
-    if (this.projectEmployeeForm.valid) {
+    if (this.projectEmployeeForm.valid && !this.isSaving) {
       const projectEmployee = {
         ...this.projectEmployeeForm.value,
         allocationPct: Number(this.projectEmployeeForm.value.allocationPct) || 0,
         isActive: this.projectEmployeeForm.value.isActive ? 'Y' : 'N',
       };
+      this.isSaving = true;
       if (projectEmployee.empProjectId) {
         // Update existing project employee
         this.masterService.updateProjectEmp(projectEmployee).subscribe(
           () => {
+            this.isSaving = false;
             this.getProjectEmployees();
             this.projectEmployeeForm.reset();
             this.toast.success({
@@ -159,6 +163,7 @@ export class ProjectEmployeeComponent implements OnInit {
             this.expandedAssignmentId = null;
           },
           (error: any) => {
+            this.isSaving = false;
             this.toast.error({
               title: 'Update failed',
               description: 'Unable to update project assignment.',
@@ -169,6 +174,7 @@ export class ProjectEmployeeComponent implements OnInit {
         // Create new project employee
         this.masterService.saveProjectEmp(projectEmployee).subscribe(
           () => {
+            this.isSaving = false;
             this.getProjectEmployees();
             this.projectEmployeeForm.reset();
             this.toast.success({
@@ -179,6 +185,7 @@ export class ProjectEmployeeComponent implements OnInit {
             this.resetForm();
           },
           (error: any) => {
+            this.isSaving = false;
             this.toast.error({
               title: 'Creation failed',
               description: 'Unable to create project assignment.',
@@ -187,10 +194,12 @@ export class ProjectEmployeeComponent implements OnInit {
         );
       }
     } else {
-      this.toast.error({
-        title: 'Missing details',
-        description: 'Please complete all required fields.',
-      });
+      if (!this.isSaving) {
+        this.toast.error({
+          title: 'Missing details',
+          description: 'Please complete all required fields.',
+        });
+      }
     }
   }
 
@@ -200,9 +209,11 @@ export class ProjectEmployeeComponent implements OnInit {
       return;
     }
     const { empProjectId, projectName } = this.pendingDelete;
-    this.pendingDelete = null;
+    this.isDeleting = true;
     this.masterService.deleteProjectEmpById(empProjectId).subscribe(
       () => {
+        this.isDeleting = false;
+        this.pendingDelete = null;
         this.assignmentsSignal.update((list) =>
           list.filter((item) => item.empProjectId !== empProjectId)
         );
@@ -218,6 +229,7 @@ export class ProjectEmployeeComponent implements OnInit {
         }
       },
       () => {
+        this.isDeleting = false;
         this.toast.error({
           title: 'Delete failed',
           description: 'Unable to remove project assignment.',
@@ -236,6 +248,7 @@ export class ProjectEmployeeComponent implements OnInit {
   }
 
   toggleCreatePanel() {
+    this.isSaving = false;
     this.showCreatePanel = !this.showCreatePanel;
     this.editingAssignmentId = null;
     this.expandedAssignmentId = null;
@@ -252,6 +265,7 @@ export class ProjectEmployeeComponent implements OnInit {
 
   cancelEdit() {
     if (this.editingAssignmentId !== null) {
+      this.isSaving = false;
       this.projectEmployeeForm.reset();
       this.editingAssignmentId = null;
     }
