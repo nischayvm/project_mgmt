@@ -1212,46 +1212,115 @@ export async function createEmployee(payload) {
 
 export async function updateEmployee(employeeId, payload) {
   await ensureBootstrapData();
-  const departmentName = await resolveDepartmentNameByChildId(
-    payload.deptId,
-    payload.department
-  );
+
+  // Build update data object, only including fields that are provided
+  const updateData = {};
+
+  // Only update employeeName if provided (it's a required field, so don't set to undefined)
+  if (payload.employeeName !== undefined) {
+    updateData.employeeName = payload.employeeName;
+  }
+
+  // Update optional fields only if provided
+  if (payload.contactNo !== undefined) {
+    updateData.contactNo = payload.contactNo ?? null;
+  }
+  if (payload.emailId !== undefined) {
+    updateData.emailId = payload.emailId ?? null;
+  }
+  if (payload.deptId !== undefined || payload.department !== undefined) {
+    const departmentName = await resolveDepartmentNameByChildId(
+      payload.deptId,
+      payload.department
+    );
+    updateData.deptId = payload.deptId ?? null;
+    updateData.department = departmentName;
+  }
+  if (payload.password !== undefined) {
+    updateData.password = payload.password ?? null;
+  }
+  if (payload.gender !== undefined) {
+    updateData.gender = payload.gender ?? null;
+  }
+  if (payload.role !== undefined) {
+    updateData.role = payload.role ?? null;
+  }
+  if (payload.title !== undefined) {
+    updateData.title = payload.title ?? null;
+  }
+  if (payload.avatarUrl !== undefined) {
+    updateData.avatarUrl = payload.avatarUrl ?? null;
+  }
+  if (payload.location !== undefined) {
+    updateData.location = payload.location ?? null;
+  }
+  if (payload.timezone !== undefined) {
+    updateData.timezone = payload.timezone ?? null;
+  }
+  if (payload.employmentType !== undefined) {
+    updateData.employmentType = payload.employmentType ?? null;
+  }
+  if (payload.managerId !== undefined) {
+    updateData.managerId = payload.managerId ?? null;
+  }
+  if (payload.hireDate !== undefined) {
+    updateData.hireDate = toDate(payload.hireDate);
+  }
+  if (payload.bio !== undefined) {
+    updateData.bio = payload.bio ?? null;
+  }
+  if (payload.about !== undefined) {
+    updateData.about = payload.about ?? null;
+  }
+  if (payload.notes !== undefined) {
+    updateData.notes = payload.notes ?? null;
+  }
+  if (payload.tags !== undefined) {
+    updateData.tags = payload.tags ?? [];
+  }
+  if (payload.skills !== undefined) {
+    updateData.skills = payload.skills ?? [];
+  }
+  if (payload.certifications !== undefined) {
+    updateData.certifications = payload.certifications ?? [];
+  }
+  if (payload.interests !== undefined) {
+    updateData.interests = payload.interests ?? [];
+  }
+  if (payload.languages !== undefined) {
+    updateData.languages = payload.languages ?? [];
+  }
+  if (payload.socialLinks !== undefined) {
+    updateData.socialLinks = payload.socialLinks ?? null;
+  }
+  if (payload.workPreferences !== undefined) {
+    updateData.workPreferences = payload.workPreferences ?? null;
+  }
+  if (payload.availability !== undefined) {
+    updateData.availability = payload.availability ?? null;
+  }
+  if (payload.preferences !== undefined) {
+    updateData.preferences = payload.preferences ?? null;
+  }
+  if (payload.performanceSnapshot !== undefined) {
+    updateData.performanceSnapshot = payload.performanceSnapshot ?? null;
+  }
+  if (payload.documents !== undefined) {
+    updateData.documents = payload.documents ?? null;
+  }
+  if (payload.customFields !== undefined) {
+    updateData.customFields = payload.customFields ?? null;
+  }
+  if (payload.isActive !== undefined) {
+    updateData.isActive = payload.isActive !== false;
+  }
+  if (payload.lastActiveAt !== undefined) {
+    updateData.lastActiveAt = toDate(payload.lastActiveAt);
+  }
+
   const record = await prisma.employee.update({
     where: { employeeId: Number(employeeId) },
-    data: {
-      employeeName: payload.employeeName,
-      contactNo: payload.contactNo ?? null,
-      emailId: payload.emailId ?? null,
-      deptId: payload.deptId ?? null,
-      department: departmentName,
-      password: payload.password ?? null,
-      gender: payload.gender ?? null,
-      role: payload.role ?? null,
-      title: payload.title ?? null,
-      avatarUrl: payload.avatarUrl ?? null,
-      location: payload.location ?? null,
-      timezone: payload.timezone ?? null,
-      employmentType: payload.employmentType ?? null,
-      managerId: payload.managerId ?? null,
-      hireDate: toDate(payload.hireDate),
-      bio: payload.bio ?? null,
-      about: payload.about ?? null,
-      notes: payload.notes ?? null,
-      tags: payload.tags ?? [],
-      skills: payload.skills ?? [],
-      certifications: payload.certifications ?? [],
-      interests: payload.interests ?? [],
-      languages: payload.languages ?? [],
-      socialLinks: payload.socialLinks ?? null,
-      workPreferences: payload.workPreferences ?? null,
-      availability: payload.availability ?? null,
-      preferences: payload.preferences ?? null,
-      performanceSnapshot: payload.performanceSnapshot ?? null,
-      documents: payload.documents ?? null,
-      customFields: payload.customFields ?? null,
-      isActive: payload.isActive !== false,
-      lastActiveAt: toDate(payload.lastActiveAt),
-    },
+    data: updateData,
   });
 
   return mapEmployee(record);
@@ -1746,71 +1815,181 @@ export async function createProject(payload) {
 
 export async function updateProject(projectId, payload) {
   await ensureBootstrapData();
-  const readiness = normalizeReadinessChecklist(payload.readinessChecklist);
-  const statusHistory = normalizeStatusHistory(payload.statusHistory);
-  const timeline = normalizeTimelineEntries(payload.timeline);
-  const reviewerComments = normalizeReviewerComments(payload.reviewerComments);
-  const approvalStatus = normalizeApprovalStatus(payload.approvalStatus);
+
+  // Build update data object, only including fields that are provided
+  const updateData = {};
+
+  // Only update projectName if provided (it's a required field, so don't set to undefined)
+  if (payload.projectName !== undefined) {
+    updateData.projectName = payload.projectName;
+  }
+
+  // Normalize complex fields only if provided
+  if (payload.readinessChecklist !== undefined) {
+    updateData.readinessChecklist = normalizeReadinessChecklist(
+      payload.readinessChecklist
+    );
+  }
+  if (payload.statusHistory !== undefined) {
+    updateData.statusHistory = normalizeStatusHistory(payload.statusHistory);
+  }
+  if (payload.timeline !== undefined) {
+    updateData.timeline = normalizeTimelineEntries(payload.timeline);
+  }
+  if (payload.reviewerComments !== undefined) {
+    updateData.reviewerComments = normalizeReviewerComments(
+      payload.reviewerComments
+    );
+  }
+  if (payload.approvalStatus !== undefined) {
+    updateData.approvalStatus = normalizeApprovalStatus(payload.approvalStatus);
+  }
+
+  // Update optional fields only if provided
+  if (payload.clientName !== undefined) {
+    updateData.clientName = payload.clientName ?? null;
+  }
+  if (payload.clientIndustry !== undefined) {
+    updateData.clientIndustry = payload.clientIndustry ?? null;
+  }
+  if (payload.startDate !== undefined) {
+    updateData.startDate = toDate(payload.startDate);
+  }
+  if (payload.endDate !== undefined) {
+    updateData.endDate = toDate(payload.endDate);
+  }
+  if (payload.leadByEmpId !== undefined) {
+    updateData.leadByEmpId = payload.leadByEmpId
+      ? Number(payload.leadByEmpId)
+      : null;
+  }
+  if (payload.sponsorEmpId !== undefined) {
+    updateData.sponsorEmpId = payload.sponsorEmpId
+      ? Number(payload.sponsorEmpId)
+      : null;
+  }
+  if (payload.contactPerson !== undefined) {
+    updateData.contactPerson = payload.contactPerson ?? null;
+  }
+  if (payload.contactNo !== undefined) {
+    updateData.contactNo = payload.contactNo ?? null;
+  }
+  if (payload.emailId !== undefined) {
+    updateData.emailId = payload.emailId ?? null;
+  }
+  if (payload.contactTitle !== undefined) {
+    updateData.contactTitle = payload.contactTitle ?? null;
+  }
+  if (payload.contactNotes !== undefined) {
+    updateData.contactNotes = payload.contactNotes ?? null;
+  }
+  if (payload.overview !== undefined) {
+    updateData.overview = payload.overview ?? null;
+  }
+  if (payload.scope !== undefined) {
+    updateData.scope = payload.scope ?? null;
+  }
+  if (payload.successMetrics !== undefined) {
+    updateData.successMetrics = payload.successMetrics ?? [];
+  }
+  if (payload.status !== undefined) {
+    updateData.status = payload.status ?? "draft";
+  }
+  if (payload.statusReason !== undefined) {
+    updateData.statusReason = payload.statusReason ?? null;
+  }
+  if (payload.milestones !== undefined) {
+    updateData.milestones = payload.milestones ?? [];
+  }
+  if (payload.categories !== undefined) {
+    updateData.categories = payload.categories ?? [];
+  }
+  if (payload.tags !== undefined) {
+    updateData.tags = payload.tags ?? [];
+  }
+  if (payload.focusAreas !== undefined) {
+    updateData.focusAreas = payload.focusAreas ?? [];
+  }
+  if (payload.blockers !== undefined) {
+    updateData.blockers = payload.blockers ?? [];
+  }
+  if (payload.risks !== undefined) {
+    updateData.risks = payload.risks ?? [];
+  }
+  if (payload.riskRegister !== undefined) {
+    updateData.riskRegister = payload.riskRegister ?? null;
+  }
+  if (payload.budget !== undefined) {
+    updateData.budget = payload.budget ?? null;
+  }
+  if (payload.financials !== undefined) {
+    updateData.financials = payload.financials ?? null;
+  }
+  if (payload.resourcesPlan !== undefined) {
+    updateData.resourcesPlan = payload.resourcesPlan ?? null;
+  }
+  if (payload.readinessScore !== undefined) {
+    updateData.readinessScore =
+      typeof payload.readinessScore === "number"
+        ? payload.readinessScore
+        : updateData.readinessChecklist?.percent ?? null;
+  }
+  if (payload.approvalRequestedAt !== undefined) {
+    updateData.approvalRequestedAt = toDate(payload.approvalRequestedAt);
+  }
+  if (payload.approvalRequestedBy !== undefined) {
+    updateData.approvalRequestedBy = payload.approvalRequestedBy
+      ? Number(payload.approvalRequestedBy)
+      : null;
+  }
+  if (payload.approvalResolvedAt !== undefined) {
+    updateData.approvalResolvedAt = toDate(payload.approvalResolvedAt);
+  }
+  if (payload.approvalResolvedBy !== undefined) {
+    updateData.approvalResolvedBy = payload.approvalResolvedBy
+      ? Number(payload.approvalResolvedBy)
+      : null;
+  }
+  if (payload.approvalReason !== undefined) {
+    updateData.approvalReason = payload.approvalReason ?? null;
+  }
+  if (payload.approvalNotes !== undefined) {
+    updateData.approvalNotes = payload.approvalNotes ?? {};
+  }
+  if (payload.progress !== undefined) {
+    updateData.progress = payload.progress ?? null;
+  }
+  if (payload.health !== undefined) {
+    updateData.health = payload.health ?? null;
+  }
+  if (payload.documents !== undefined) {
+    updateData.documents = payload.documents ?? [];
+  }
+  if (payload.externalLinks !== undefined) {
+    updateData.externalLinks = payload.externalLinks ?? [];
+  }
+  if (payload.aiGeneratedInsights !== undefined) {
+    updateData.aiGeneratedInsights = payload.aiGeneratedInsights ?? null;
+  }
+  if (payload.cmsContentRefs !== undefined) {
+    updateData.cmsContentRefs = payload.cmsContentRefs ?? [];
+  }
+  if (payload.lastSyncedAt !== undefined) {
+    updateData.lastSyncedAt = toDate(payload.lastSyncedAt);
+  }
+  if (payload.stageGate !== undefined) {
+    updateData.stageGate = payload.stageGate ?? null;
+  }
+  if (payload.governance !== undefined) {
+    updateData.governance = payload.governance ?? null;
+  }
+  if (payload.communicationPlan !== undefined) {
+    updateData.communicationPlan = payload.communicationPlan ?? null;
+  }
+
   const record = await prisma.project.update({
     where: { projectId: Number(projectId) },
-    data: {
-      projectName: payload.projectName,
-      clientName: payload.clientName ?? null,
-      clientIndustry: payload.clientIndustry ?? null,
-      startDate: toDate(payload.startDate),
-      endDate: toDate(payload.endDate),
-      leadByEmpId: payload.leadByEmpId ? Number(payload.leadByEmpId) : null,
-      sponsorEmpId: payload.sponsorEmpId ? Number(payload.sponsorEmpId) : null,
-      contactPerson: payload.contactPerson ?? null,
-      contactNo: payload.contactNo ?? null,
-      emailId: payload.emailId ?? null,
-      contactTitle: payload.contactTitle ?? null,
-      contactNotes: payload.contactNotes ?? null,
-      overview: payload.overview ?? null,
-      scope: payload.scope ?? null,
-      successMetrics: payload.successMetrics ?? [],
-      status: payload.status ?? "draft",
-      statusReason: payload.statusReason ?? null,
-      statusHistory,
-      timeline,
-      milestones: payload.milestones ?? [],
-      categories: payload.categories ?? [],
-      tags: payload.tags ?? [],
-      focusAreas: payload.focusAreas ?? [],
-      blockers: payload.blockers ?? [],
-      risks: payload.risks ?? [],
-      riskRegister: payload.riskRegister ?? null,
-      budget: payload.budget ?? null,
-      financials: payload.financials ?? null,
-      resourcesPlan: payload.resourcesPlan ?? null,
-      readinessChecklist: readiness,
-      readinessScore:
-        typeof payload.readinessScore === "number"
-          ? payload.readinessScore
-          : readiness.percent,
-      approvalStatus,
-      approvalRequestedAt: toDate(payload.approvalRequestedAt),
-      approvalRequestedBy: payload.approvalRequestedBy
-        ? Number(payload.approvalRequestedBy)
-        : null,
-      approvalResolvedAt: toDate(payload.approvalResolvedAt),
-      approvalResolvedBy: payload.approvalResolvedBy
-        ? Number(payload.approvalResolvedBy)
-        : null,
-      approvalReason: payload.approvalReason ?? null,
-      approvalNotes: payload.approvalNotes ?? {},
-      reviewerComments,
-      progress: payload.progress ?? null,
-      health: payload.health ?? null,
-      documents: payload.documents ?? [],
-      externalLinks: payload.externalLinks ?? [],
-      aiGeneratedInsights: payload.aiGeneratedInsights ?? null,
-      cmsContentRefs: payload.cmsContentRefs ?? [],
-      lastSyncedAt: toDate(payload.lastSyncedAt),
-      stageGate: payload.stageGate ?? null,
-      governance: payload.governance ?? null,
-      communicationPlan: payload.communicationPlan ?? null,
-    },
+    data: updateData,
   });
 
   return mapProject(record);
@@ -2118,8 +2297,13 @@ export async function deleteProject(projectId) {
 }
 
 function mapProjectEmployee(item, projectLookup, employeeLookup) {
-  const project = projectLookup.get(item.projectId);
-  const employee = employeeLookup.get(item.empId);
+  // Safety check: ensure item is not null
+  if (!item) {
+    throw new Error("Cannot map null or undefined ProjectEmployee item");
+  }
+
+  const project = item.projectId ? projectLookup.get(item.projectId) : null;
+  const employee = item.empId ? employeeLookup.get(item.empId) : null;
 
   return {
     empProjectId: item.empProjectId,
@@ -2173,13 +2357,26 @@ export async function listProjectEmployees() {
 
 export async function createProjectEmployee(payload) {
   await ensureBootstrapData();
+
+  // Validate required fields
+  if (!payload.projectId) {
+    throw new Error(
+      "projectId is required to create a project employee assignment"
+    );
+  }
+  if (!payload.empId) {
+    throw new Error(
+      "empId is required to create a project employee assignment"
+    );
+  }
+
   const empProjectId = await getNextSequenceValue("projectEmployee");
 
   const record = await prisma.projectEmployee.create({
     data: {
       empProjectId,
-      projectId: payload.projectId ? Number(payload.projectId) : null,
-      empId: payload.empId ? Number(payload.empId) : null,
+      projectId: Number(payload.projectId),
+      empId: Number(payload.empId),
       assignedDate: toDate(payload.assignedDate),
       role: payload.role ?? null,
       isActive:
@@ -2228,32 +2425,73 @@ export async function createProjectEmployee(payload) {
 
 export async function updateProjectEmployee(empProjectId, payload) {
   await ensureBootstrapData();
+
+  // Build update data object, only including fields that are provided
+  const updateData = {};
+
+  // Only update projectId if provided (it's a required field, so don't set to null)
+  if (payload.projectId !== undefined && payload.projectId !== null) {
+    updateData.projectId = Number(payload.projectId);
+  }
+
+  // Only update empId if provided (it's a required field, so don't set to null)
+  if (payload.empId !== undefined && payload.empId !== null) {
+    updateData.empId = Number(payload.empId);
+  }
+
+  // Update optional fields
+  if (payload.assignedDate !== undefined) {
+    updateData.assignedDate = toDate(payload.assignedDate);
+  }
+  if (payload.role !== undefined) {
+    updateData.role = payload.role ?? null;
+  }
+  if (payload.isActive !== undefined) {
+    updateData.isActive =
+      payload.isActive === "Y" ||
+      payload.isActive === "true" ||
+      payload.isActive === true;
+  }
+  if (payload.allocationPct !== undefined) {
+    updateData.allocationPct = payload.allocationPct ?? null;
+  }
+  if (payload.billable !== undefined) {
+    updateData.billable =
+      typeof payload.billable === "boolean"
+        ? payload.billable
+        : payload.billable === "Y" || payload.billable === "true";
+  }
+  if (payload.billingRate !== undefined) {
+    updateData.billingRate = payload.billingRate ?? null;
+  }
+  if (payload.costRate !== undefined) {
+    updateData.costRate = payload.costRate ?? null;
+  }
+  if (payload.notes !== undefined) {
+    updateData.notes = payload.notes ?? null;
+  }
+  if (payload.responsibilities !== undefined) {
+    updateData.responsibilities = payload.responsibilities ?? [];
+  }
+  if (payload.skillsApplied !== undefined) {
+    updateData.skillsApplied = payload.skillsApplied ?? [];
+  }
+  if (payload.toolsUsed !== undefined) {
+    updateData.toolsUsed = payload.toolsUsed ?? [];
+  }
+  if (payload.schedule !== undefined) {
+    updateData.schedule = payload.schedule ?? null;
+  }
+  if (payload.contribution !== undefined) {
+    updateData.contribution = payload.contribution ?? null;
+  }
+  if (payload.unassignedAt !== undefined) {
+    updateData.unassignedAt = toDate(payload.unassignedAt);
+  }
+
   const record = await prisma.projectEmployee.update({
     where: { empProjectId: Number(empProjectId) },
-    data: {
-      projectId: payload.projectId ? Number(payload.projectId) : null,
-      empId: payload.empId ? Number(payload.empId) : null,
-      assignedDate: toDate(payload.assignedDate),
-      role: payload.role ?? null,
-      isActive:
-        payload.isActive === "Y" ||
-        payload.isActive === "true" ||
-        payload.isActive === true,
-      allocationPct: payload.allocationPct ?? null,
-      billable:
-        typeof payload.billable === "boolean"
-          ? payload.billable
-          : payload.billable === "Y" || payload.billable === "true",
-      billingRate: payload.billingRate ?? null,
-      costRate: payload.costRate ?? null,
-      notes: payload.notes ?? null,
-      responsibilities: payload.responsibilities ?? [],
-      skillsApplied: payload.skillsApplied ?? [],
-      toolsUsed: payload.toolsUsed ?? [],
-      schedule: payload.schedule ?? null,
-      contribution: payload.contribution ?? null,
-      unassignedAt: toDate(payload.unassignedAt),
-    },
+    data: updateData,
   });
 
   const [projectLookup, employeeLookup] = await Promise.all([
@@ -2395,9 +2633,7 @@ export async function buildScheduleData() {
     orderBy: { startDate: "asc" },
   });
 
-  const activeProjects = projects.filter(
-    (project) => !project.archivedAt
-  );
+  const activeProjects = projects.filter((project) => !project.archivedAt);
 
   const employees = await prisma.employee.findMany({
     select: {
