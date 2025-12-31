@@ -1,5 +1,6 @@
 import { prisma } from "../_lib/prisma-client.mjs";
 import { getStore } from "./store.mjs";
+import { MongoClient } from "mongodb";
 
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}/;
 
@@ -402,6 +403,88 @@ async function ensureBootstrapData() {
   }
 
   return bootstrapPromise;
+}
+
+/**
+ * Helper function to perform MongoDB update with native driver fallback
+ * This is needed because Prisma's update() can return null with MongoDB
+ * @param {string} prismaModelName - Prisma model name (camelCase, e.g., "employee", "project", "projectEmployee")
+ * @param {string} whereField - Field name to match (e.g., "employeeId", "projectId", "empProjectId")
+ * @param {any} whereValue - Value to match
+ * @param {object} updateData - Data to update
+ * @param {function} fetchAfterUpdate - Function to fetch the updated record using Prisma
+ */
+async function updateWithMongoFallback(prismaModelName, whereField, whereValue, updateData, fetchAfterUpdate) {
+  // Convert Prisma model name to MongoDB collection name (PascalCase)
+  const collectionNameMap = {
+    employee: "Employee",
+    project: "Project",
+    projectEmployee: "ProjectEmployee",
+  };
+  const mongoCollectionName = collectionNameMap[prismaModelName] || prismaModelName;
+  
+  // Try Prisma update first
+  let updateSucceeded = false;
+  let record = null;
+  
+  try {
+    const updateResult = await prisma[prismaModelName].update({
+      where: { [whereField]: whereValue },
+      data: updateData,
+    });
+    if (updateResult) {
+      record = updateResult;
+      updateSucceeded = true;
+    }
+  } catch (updateError) {
+    if (updateError.code === 'P2025') {
+      throw new Error(`Record not found with ${whereField} ${whereValue}`);
+    }
+  }
+  
+  // If Prisma update failed or returned null, use MongoDB native driver
+  if (!updateSucceeded) {
+    const databaseUrl =
+      process.env.NG_APP_PRISMA_URL ||
+      process.env.NG_APP_MONGODB_URI ||
+      process.env.DATABASE_URL ||
+      process.env.MONGODB_URI;
+    
+    if (!databaseUrl) {
+      throw new Error("DATABASE_URL not found in environment variables");
+    }
+    
+    const client = new MongoClient(databaseUrl);
+    try {
+      await client.connect();
+      
+      // Extract database name from connection string
+      const dbName = databaseUrl.split("/").pop()?.split("?")[0] || "employee_management_db";
+      const db = client.db(dbName);
+      const collection = db.collection(mongoCollectionName);
+      
+      // Perform the update using native driver
+      const updateResult = await collection.updateOne(
+        { [whereField]: whereValue },
+        { $set: updateData }
+      );
+      
+      if (updateResult.matchedCount === 0) {
+        throw new Error(`No record found with ${whereField} ${whereValue}`);
+      }
+      
+      // Fetch the updated record using Prisma
+      record = await fetchAfterUpdate();
+      
+      if (!record) {
+        throw new Error(`Record not found after MongoDB native update for ${whereField} ${whereValue}`);
+      }
+    } finally {
+      await client.close();
+    }
+  }
+  
+  return record;
 }
 
 function contentfulBaseUrl(preview = false) {
@@ -1164,6 +1247,12 @@ export async function listEmployees() {
 
 export async function createEmployee(payload) {
   await ensureBootstrapData();
+
+  // Validate required fields
+  if (!payload.employeeName) {
+    throw new Error("employeeName is required to create an employee");
+  }
+
   const employeeId = await getNextSequenceValue("employee");
   const departmentName = await resolveDepartmentNameByChildId(
     payload.deptId,
@@ -1207,11 +1296,25 @@ export async function createEmployee(payload) {
     },
   });
 
+  // Verify the record was created (should never be null after successful create)
+  if (!record) {
+    throw new Error("Failed to create employee record");
+  }
+
   return mapEmployee(record);
 }
 
 export async function updateEmployee(employeeId, payload) {
   await ensureBootstrapData();
+
+  // Verify the record exists before attempting to update
+  const existingRecord = await prisma.employee.findUnique({
+    where: { employeeId: Number(employeeId) },
+  });
+
+  if (!existingRecord) {
+    throw new Error(`Employee with employeeId ${employeeId} not found`);
+  }
 
   // Build update data object, only including fields that are provided
   const updateData = {};
@@ -1318,10 +1421,27 @@ export async function updateEmployee(employeeId, payload) {
     updateData.lastActiveAt = toDate(payload.lastActiveAt);
   }
 
-  const record = await prisma.employee.update({
-    where: { employeeId: Number(employeeId) },
-    data: updateData,
-  });
+  // If no fields to update, return the existing record
+  if (Object.keys(updateData).length === 0) {
+    return mapEmployee(existingRecord);
+  }
+
+  // Use MongoDB native driver fallback for update
+  const record = await updateWithMongoFallback(
+    "employee",
+    "employeeId",
+    Number(employeeId),
+    updateData,
+    async () => {
+      return await prisma.employee.findUnique({
+        where: { employeeId: Number(employeeId) },
+      });
+    }
+  );
+
+  if (!record) {
+    throw new Error(`Failed to update employee with employeeId ${employeeId}`);
+  }
 
   return mapEmployee(record);
 }
@@ -1718,6 +1838,12 @@ export async function getProjectResourceInsights(projectId) {
 
 export async function createProject(payload) {
   await ensureBootstrapData();
+
+  // Validate required fields
+  if (!payload.projectName) {
+    throw new Error("projectName is required to create a project");
+  }
+
   const projectId = await getNextSequenceValue("project");
   const readiness = normalizeReadinessChecklist(payload.readinessChecklist);
   const statusHistory = normalizeStatusHistory(payload.statusHistory);
@@ -1810,11 +1936,25 @@ export async function createProject(payload) {
     },
   });
 
+  // Verify the record was created (should never be null after successful create)
+  if (!record) {
+    throw new Error("Failed to create project record");
+  }
+
   return mapProject(record);
 }
 
 export async function updateProject(projectId, payload) {
   await ensureBootstrapData();
+
+  // Verify the record exists before attempting to update
+  const existingRecord = await prisma.project.findUnique({
+    where: { projectId: Number(projectId) },
+  });
+
+  if (!existingRecord) {
+    throw new Error(`Project with projectId ${projectId} not found`);
+  }
 
   // Build update data object, only including fields that are provided
   const updateData = {};
@@ -1987,10 +2127,27 @@ export async function updateProject(projectId, payload) {
     updateData.communicationPlan = payload.communicationPlan ?? null;
   }
 
-  const record = await prisma.project.update({
-    where: { projectId: Number(projectId) },
-    data: updateData,
-  });
+  // If no fields to update, return the existing record
+  if (Object.keys(updateData).length === 0) {
+    return mapProject(existingRecord);
+  }
+
+  // Use MongoDB native driver fallback for update
+  const record = await updateWithMongoFallback(
+    "project",
+    "projectId",
+    Number(projectId),
+    updateData,
+    async () => {
+      return await prisma.project.findUnique({
+        where: { projectId: Number(projectId) },
+      });
+    }
+  );
+
+  if (!record) {
+    throw new Error(`Failed to update project with projectId ${projectId}`);
+  }
 
   return mapProject(record);
 }
@@ -2136,21 +2293,34 @@ export async function transitionProjectApproval(projectId, action, payload) {
   approvalNotes.lastActorId = actorId ?? null;
   approvalNotes.lastActorName = actorName ?? null;
 
-  const updated = await prisma.project.update({
-    where: { projectId: numericId },
-    data: {
-      status: nextStatus,
-      approvalStatus: nextStatus,
-      approvalRequestedAt,
-      approvalRequestedBy,
-      approvalResolvedAt,
-      approvalResolvedBy,
-      approvalReason,
-      approvalNotes,
-      statusHistory: history,
-      timeline,
-    },
-  });
+  const updateData = {
+    status: nextStatus,
+    approvalStatus: nextStatus,
+    approvalRequestedAt,
+    approvalRequestedBy,
+    approvalResolvedAt,
+    approvalResolvedBy,
+    approvalReason,
+    approvalNotes,
+    statusHistory: history,
+    timeline,
+  };
+
+  const updated = await updateWithMongoFallback(
+    "project",
+    "projectId",
+    numericId,
+    updateData,
+    async () => {
+      return await prisma.project.findUnique({
+        where: { projectId: numericId },
+      });
+    }
+  );
+
+  if (!updated) {
+    throw new Error(`Failed to update project approval status for projectId ${numericId}`);
+  }
 
   return mapProject(updated);
 }
@@ -2206,13 +2376,26 @@ export async function addProjectReviewerComment(projectId, payload) {
     actorName: entry.reviewerName ?? undefined,
   });
 
-  const updated = await prisma.project.update({
-    where: { projectId: numericId },
-    data: {
-      reviewerComments: comments,
-      timeline,
-    },
-  });
+  const updateData = {
+    reviewerComments: comments,
+    timeline,
+  };
+
+  const updated = await updateWithMongoFallback(
+    "project",
+    "projectId",
+    numericId,
+    updateData,
+    async () => {
+      return await prisma.project.findUnique({
+        where: { projectId: numericId },
+      });
+    }
+  );
+
+  if (!updated) {
+    throw new Error(`Failed to add reviewer comment for projectId ${numericId}`);
+  }
 
   return mapProject(updated);
 }
@@ -2257,12 +2440,25 @@ export async function resolveProjectReviewerComment(
     resolvedBy: resolved ? actorId ?? actorName ?? null : undefined,
   };
 
-  const updated = await prisma.project.update({
-    where: { projectId: numericId },
-    data: {
-      reviewerComments: comments,
-    },
-  });
+  const updateData = {
+    reviewerComments: comments,
+  };
+
+  const updated = await updateWithMongoFallback(
+    "project",
+    "projectId",
+    numericId,
+    updateData,
+    async () => {
+      return await prisma.project.findUnique({
+        where: { projectId: numericId },
+      });
+    }
+  );
+
+  if (!updated) {
+    throw new Error(`Failed to resolve reviewer comment for projectId ${numericId}`);
+  }
 
   return mapProject(updated);
 }
@@ -2399,6 +2595,11 @@ export async function createProjectEmployee(payload) {
     },
   });
 
+  // Verify the record was created (should never be null after successful create)
+  if (!record) {
+    throw new Error("Failed to create project employee assignment record");
+  }
+
   const [projectLookup, employeeLookup] = await Promise.all([
     prisma.project.findMany({
       select: { projectId: true, projectName: true },
@@ -2425,6 +2626,24 @@ export async function createProjectEmployee(payload) {
 
 export async function updateProjectEmployee(empProjectId, payload) {
   await ensureBootstrapData();
+
+  console.log(`[updateProjectEmployee] Starting update for empProjectId: ${empProjectId}`);
+  console.log(`[updateProjectEmployee] Payload:`, JSON.stringify(payload, null, 2));
+
+  // Verify the record exists before attempting to update
+  const existingRecord = await prisma.projectEmployee.findUnique({
+    where: { empProjectId: Number(empProjectId) },
+  });
+
+  if (!existingRecord) {
+    throw new Error(`Project employee assignment with empProjectId ${empProjectId} not found`);
+  }
+
+  console.log(`[updateProjectEmployee] Existing record found:`, {
+    empProjectId: existingRecord.empProjectId,
+    projectId: existingRecord.projectId,
+    empId: existingRecord.empId,
+  });
 
   // Build update data object, only including fields that are provided
   const updateData = {};
@@ -2489,10 +2708,151 @@ export async function updateProjectEmployee(empProjectId, payload) {
     updateData.unassignedAt = toDate(payload.unassignedAt);
   }
 
-  const record = await prisma.projectEmployee.update({
-    where: { empProjectId: Number(empProjectId) },
-    data: updateData,
-  });
+  console.log(`[updateProjectEmployee] Update data:`, JSON.stringify(updateData, null, 2));
+
+  // If no fields to update, return the existing record
+  if (Object.keys(updateData).length === 0) {
+    console.log(`[updateProjectEmployee] No fields to update, returning existing record`);
+    // Fetch lookups and return mapped existing record
+    const [projectLookup, employeeLookup] = await Promise.all([
+      prisma.project.findMany({
+        select: { projectId: true, projectName: true },
+      }),
+      prisma.employee.findMany({
+        select: { employeeId: true, employeeName: true, emailId: true },
+      }),
+    ]);
+
+    const mapped = mapProjectEmployee(
+      existingRecord,
+      new Map(projectLookup.map((item) => [item.projectId, item])),
+      new Map(employeeLookup.map((item) => [item.employeeId, item]))
+    );
+
+    // Add employee email for notification purposes
+    const employee = employeeLookup.find((e) => e.employeeId === existingRecord.empId);
+    if (employee) {
+      mapped.employeeEmail = employee.emailId;
+    }
+
+    return mapped;
+  }
+
+  let record;
+  try {
+    console.log(`[updateProjectEmployee] Calling Prisma update with where:`, { empProjectId: Number(empProjectId) });
+    
+    // Try Prisma update first
+    let updateSucceeded = false;
+    try {
+      const updateResult = await prisma.projectEmployee.update({
+        where: { empProjectId: Number(empProjectId) },
+        data: updateData,
+      });
+      if (updateResult) {
+        record = updateResult;
+        updateSucceeded = true;
+        console.log(`[updateProjectEmployee] Prisma update succeeded and returned record`);
+      } else {
+        console.warn(`[updateProjectEmployee] Prisma update returned null, trying MongoDB native driver`);
+      }
+    } catch (updateError) {
+      console.warn(`[updateProjectEmployee] Prisma update threw error:`, updateError.message);
+      if (updateError.code === 'P2025') {
+        throw new Error(`Record with empProjectId ${empProjectId} not found`);
+      }
+    }
+    
+    // If Prisma update failed or returned null, use MongoDB native driver
+    if (!updateSucceeded) {
+      console.log(`[updateProjectEmployee] Using MongoDB native driver to perform update`);
+      
+      const databaseUrl =
+        process.env.NG_APP_PRISMA_URL ||
+        process.env.NG_APP_MONGODB_URI ||
+        process.env.DATABASE_URL ||
+        process.env.MONGODB_URI;
+      
+      if (!databaseUrl) {
+        throw new Error("DATABASE_URL not found in environment variables");
+      }
+      
+      const client = new MongoClient(databaseUrl);
+      try {
+        await client.connect();
+        console.log(`[updateProjectEmployee] Connected to MongoDB via native driver`);
+        
+        // Extract database name from connection string
+        const dbName = databaseUrl.split("/").pop()?.split("?")[0] || "employee_management_db";
+        const db = client.db(dbName);
+        const collection = db.collection("ProjectEmployee");
+        
+        // Perform the update using native driver
+        const updateResult = await collection.updateOne(
+          { empProjectId: Number(empProjectId) },
+          { $set: updateData }
+        );
+        
+        console.log(`[updateProjectEmployee] MongoDB native update result:`, {
+          matchedCount: updateResult.matchedCount,
+          modifiedCount: updateResult.modifiedCount,
+        });
+        
+        if (updateResult.matchedCount === 0) {
+          throw new Error(`No record found with empProjectId ${empProjectId}`);
+        }
+        
+        if (updateResult.modifiedCount === 0) {
+          console.warn(`[updateProjectEmployee] Update matched but didn't modify (values may be the same)`);
+        }
+        
+        // Fetch the updated record using Prisma
+        record = await prisma.projectEmployee.findUnique({
+          where: { empProjectId: Number(empProjectId) },
+        });
+        
+        if (!record) {
+          throw new Error(`Record not found after MongoDB native update for empProjectId ${empProjectId}`);
+        }
+        
+        console.log(`[updateProjectEmployee] Successfully updated via MongoDB native driver`);
+      } finally {
+        await client.close();
+      }
+    }
+    
+    console.log(`[updateProjectEmployee] Final record details:`, {
+      empProjectId: record.empProjectId,
+      projectId: record.projectId,
+      empId: record.empId,
+      isActive: record.isActive,
+      allocationPct: record.allocationPct,
+      role: record.role,
+      assignedDate: record.assignedDate,
+    });
+  } catch (error) {
+    console.error(`[updateProjectEmployee] Prisma update error for empProjectId ${empProjectId}:`, error);
+    console.error(`[updateProjectEmployee] Error code:`, error.code);
+    console.error(`[updateProjectEmployee] Error message:`, error.message);
+    console.error(`[updateProjectEmployee] Error meta:`, error.meta);
+    console.error(`[updateProjectEmployee] Error stack:`, error.stack);
+    console.error(`[updateProjectEmployee] Update data:`, JSON.stringify(updateData, null, 2));
+    
+    // If it's a "record not found" error, try to fetch to confirm
+    if (error.code === 'P2025') {
+      const checkRecord = await prisma.projectEmployee.findUnique({
+        where: { empProjectId: Number(empProjectId) },
+      });
+      console.error(`[updateProjectEmployee] Record check after P2025 error:`, checkRecord ? 'EXISTS' : 'NOT FOUND');
+    }
+    
+    throw new Error(`Failed to update project employee assignment: ${error.message || error}`);
+  }
+
+  // Final safety check
+  if (!record) {
+    throw new Error(`Failed to update project employee assignment with empProjectId ${empProjectId}: No record available after update`);
+  }
 
   const [projectLookup, employeeLookup] = await Promise.all([
     prisma.project.findMany({
