@@ -26,8 +26,17 @@ export class LoginComponent {
     username: '',
     password: '',
   };
+  selectedTestAccount: string = '';
   private readonly demoCredentials = environment.demoLogin;
   private readonly toast = inject(ToastService);
+
+  readonly testAccounts = {
+    admin: {
+      username: this.demoCredentials.username,
+      password: this.demoCredentials.password,
+      label: 'Admin Account',
+    },
+  };
 
   readonly featureHighlights = [
     {
@@ -48,6 +57,21 @@ export class LoginComponent {
   ];
 
   router = inject(Router);
+
+  onTestAccountSelect(value: string): void {
+    if (value === 'clear') {
+      this.selectedTestAccount = '';
+      this.loginObj.username = '';
+      this.loginObj.password = '';
+    } else {
+      this.selectedTestAccount = value;
+      const account = this.testAccounts[value as keyof typeof this.testAccounts];
+      if (account) {
+        this.loginObj.username = account.username;
+        this.loginObj.password = account.password;
+      }
+    }
+  }
 
   onLogin() {
     if (
