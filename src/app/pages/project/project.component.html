@@ -58,8 +58,9 @@
       </div>
       <button
         type="button"
-        class="text-xs text-white/60 transition hover:text-white"
-        (click)="showCreatePanel = false"
+        [disabled]="isSaving"
+        class="text-xs text-white/60 transition hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+        (click)="closeCreatePanel()"
       >
         Cancel
       </button>
@@ -68,6 +69,7 @@
       [formGroup]="projectForm"
       (ngSubmit)="onSave()"
       class="grid gap-4 md:grid-cols-2"
+      [class.opacity-50]="isSaving"
     >
       <div class="md:col-span-1">
         <label
@@ -157,9 +159,11 @@
           type="submit"
           ubButton
           size="sm"
-          class="bg-gradient-to-r from-emerald-500 via-green-500 to-lime-500 text-white shadow-[0_20px_45px_rgba(34,197,94,0.35)]"
+          [disabled]="isSaving"
+          class="bg-gradient-to-r from-emerald-500 via-green-500 to-lime-500 text-white shadow-[0_20px_45px_rgba(34,197,94,0.35)] disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Save project
+          <span *ngIf="!isSaving">Save project</span>
+          <span *ngIf="isSaving">Saving project...</span>
         </button>
       </div>
     </form>
@@ -209,6 +213,7 @@
             [formGroup]="projectForm"
             class="grid gap-4 md:grid-cols-2"
             (ngSubmit)="onSave()"
+            [class.opacity-50]="isSaving"
           >
             <div class="md:col-span-1">
               <label
@@ -291,7 +296,8 @@
             <div class="md:col-span-2 flex justify-end gap-3 pt-2">
               <button
                 type="button"
-                class="rounded-xl border border-white/20 px-4 py-2 text-xs text-white/70 transition hover:border-white/40 hover:text-white"
+                [disabled]="isSaving"
+                class="rounded-xl border border-white/20 px-4 py-2 text-xs text-white/70 transition hover:border-white/40 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
                 (click)="cancelEdit()"
               >
                 Cancel
@@ -300,9 +306,11 @@
                 type="submit"
                 ubButton
                 size="sm"
-                class="bg-gradient-to-r from-sky-500 via-indigo-500 to-purple-500 text-white shadow-[0_20px_45px_rgba(14,116,244,0.35)]"
+                [disabled]="isSaving"
+                class="bg-gradient-to-r from-sky-500 via-indigo-500 to-purple-500 text-white shadow-[0_20px_45px_rgba(14,116,244,0.35)] disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Save changes
+                <span *ngIf="!isSaving">Save changes</span>
+                <span *ngIf="isSaving">Updating...</span>
               </button>
             </div>
           </form>
@@ -415,17 +423,20 @@
     <div class="mt-6 flex justify-end gap-3">
       <button
         type="button"
-        class="rounded-xl border border-white/20 px-4 py-2 text-xs text-white/70 transition hover:border-white/40 hover:text-white"
+        [disabled]="isDeleting"
+        class="rounded-xl border border-white/20 px-4 py-2 text-xs text-white/70 transition hover:border-white/40 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
         (click)="confirmDelete(false)"
       >
         Cancel
       </button>
       <button
         type="button"
-        class="rounded-xl border border-rose-500/40 bg-rose-500/20 px-4 py-2 text-xs text-rose-100 shadow-[0_20px_45px_rgba(244,63,94,0.35)] transition hover:border-rose-400/60 hover:bg-rose-500/30"
+        [disabled]="isDeleting"
+        class="rounded-xl border border-rose-500/40 bg-rose-500/20 px-4 py-2 text-xs text-rose-100 shadow-[0_20px_45px_rgba(244,63,94,0.35)] transition hover:border-rose-400/60 hover:bg-rose-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
         (click)="confirmDelete(true)"
       >
-        Delete project
+        <span *ngIf="!isDeleting">Delete project</span>
+        <span *ngIf="isDeleting">Deleting...</span>
       </button>
     </div>
   </div>

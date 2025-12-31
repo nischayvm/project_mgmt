@@ -326,6 +326,7 @@ export class ProjectFormComponent implements OnInit {
   readonly expandedSection = signal<SectionId | null>('overview');
   readonly editingSection = signal<SectionId | null>('overview');
   readonly isSaving = signal<boolean>(false);
+  readonly isDeleting = signal<boolean>(false);
   readonly pendingDelete = signal<boolean>(false);
 
   readonly progress = computed(() => {
@@ -557,8 +558,10 @@ export class ProjectFormComponent implements OnInit {
       this.pendingDelete.set(false);
       return;
     }
+    this.isDeleting.set(true);
     this.masterService.deleteProjectById(projectId).subscribe({
       next: () => {
+        this.isDeleting.set(false);
         this.pendingDelete.set(false);
         this.toast.success({
           title: 'Project removed',
@@ -569,7 +572,7 @@ export class ProjectFormComponent implements OnInit {
         this.router.navigate(['/projects']);
       },
       error: () => {
-        this.pendingDelete.set(false);
+        this.isDeleting.set(false);
         this.toast.error({
           title: 'Delete failed',
           description: 'Unable to archive the project currently.',

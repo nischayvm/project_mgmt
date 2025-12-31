@@ -60,6 +60,8 @@ export class ProjectComponent implements OnInit {
   editingProjectId: number | null = null;
   showCreatePanel = false;
   pendingDelete: IProject | null = null;
+  isSaving = false;
+  isDeleting = false;
 
   ngOnInit(): void {
     this.getProjects();
@@ -100,9 +102,11 @@ export class ProjectComponent implements OnInit {
       return;
     }
     const { projectId, projectName } = this.pendingDelete;
-    this.pendingDelete = null;
+    this.isDeleting = true;
     this.masterSrv.deleteProjectById(projectId).subscribe(
       () => {
+        this.isDeleting = false;
+        this.pendingDelete = null;
         this.projectsSignal.update((list) =>
           list.filter((project) => project.projectId !== projectId)
         );
@@ -115,6 +119,7 @@ export class ProjectComponent implements OnInit {
         }
       },
       () => {
+        this.isDeleting = false;
         this.toast.error({
           title: 'Delete failed',
           description: 'Something went wrong while removing the project.',
@@ -132,6 +137,7 @@ export class ProjectComponent implements OnInit {
   }
 
   startCreate() {
+    this.isSaving = false;
     this.showCreatePanel = true;
     this.editingProjectId = null;
     this.expandedProjectId = null;
@@ -148,7 +154,13 @@ export class ProjectComponent implements OnInit {
     });
   }
 
+  closeCreatePanel() {
+    this.isSaving = false;
+    this.showCreatePanel = false;
+  }
+
   cancelEdit() {
+    this.isSaving = false;
     this.editingProjectId = null;
     this.projectForm.reset({
       projectId: null,
@@ -174,13 +186,18 @@ export class ProjectComponent implements OnInit {
       });
       return;
     }
+    if (this.isSaving) {
+      return;
+    }
     const project: IProject = {
       ...this.projectForm.value,
       startDate: this.projectForm.value.startDate,
     };
+    this.isSaving = true;
     if (project.projectId) {
       this.masterSrv.updateProject(project).subscribe(
         () => {
+          this.isSaving = false;
           this.getProjects();
           this.toast.success({
             title: 'Project updated',
@@ -189,6 +206,7 @@ export class ProjectComponent implements OnInit {
           this.cancelEdit();
         },
         () => {
+          this.isSaving = false;
           this.toast.error({
             title: 'Update failed',
             description: 'Unable to update the project right now.',
@@ -198,6 +216,7 @@ export class ProjectComponent implements OnInit {
     } else {
       this.masterSrv.saveProject(project as any).subscribe(
         () => {
+          this.isSaving = false;
           this.getProjects();
           this.toast.success({
             title: 'Project created',
@@ -207,6 +226,7 @@ export class ProjectComponent implements OnInit {
           this.cancelEdit();
         },
         () => {
+          this.isSaving = false;
           this.toast.error({
             title: 'Creation failed',
             description: 'Unable to create project right now.',
