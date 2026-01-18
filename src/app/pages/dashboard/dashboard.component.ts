@@ -4,10 +4,12 @@ import { MasterService } from '../../service/master.service';
 import { IParentDept, IProject, IProjectEmployee } from '../../model/interface/master';
 import { Employee } from '../../model/class/Employee';
 
+import { RouterLink } from '@angular/router';
+
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule], // Import CommonModule here
+  imports: [CommonModule, RouterLink], // Import CommonModule here
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css'],
 })
