@@ -38,18 +38,18 @@ export class DashboardComponent implements OnInit {
     activeAssignments: number;
     inactiveAssignments: number;
   } = {
-    nonArchived: 0,
-    archived: 0,
-    active: 0,
-    inactive: 0,
-    planning: 0,
-    assigned: 0,
-    nonAssigned: 0,
-    activeAssignments: 0,
-    inactiveAssignments: 0,
-  };
+      nonArchived: 0,
+      archived: 0,
+      active: 0,
+      inactive: 0,
+      planning: 0,
+      assigned: 0,
+      nonAssigned: 0,
+      activeAssignments: 0,
+      inactiveAssignments: 0,
+    };
 
-  constructor(private masterService: MasterService) {}
+  constructor(private masterService: MasterService) { }
 
   ngOnInit(): void {
     this.getDashboardData();
@@ -218,10 +218,29 @@ export class DashboardComponent implements OnInit {
     return false;
   }
 
-  getDepartmentLogo(logo: string): string {
-    if (!logo) {
-      return '';
+  getDepartmentLogo(logo: string, deptName: string = ''): string {
+    // 1. If valid logo path exists, use it
+    if (logo && logo.trim().length > 0) {
+      return logo.startsWith('/') ? logo : `/${logo}`;
     }
-    return logo.startsWith('/') ? logo : `/${logo}`;
+
+    // 2. Fallback: Map department name to local SVG assets
+    const logoMap: { [key: string]: string } = {
+      'Engineering': 'engineering.svg',
+      'Product': 'scrum.svg',
+      'HR': 'hr.svg',
+      'Sales': 'collaboration.svg',
+      'Marketing': 'operations.svg',
+      // Add more as discovered
+    };
+
+    // 3. Check map (case-insensitive key match if needed, but exact for now)
+    const mappedLogo = logoMap[deptName] || logoMap[deptName.trim()];
+    if (mappedLogo) {
+      return `/${mappedLogo}`;
+    }
+
+    // 4. Final fallback? could return a default generic icon
+    return '';
   }
 }
