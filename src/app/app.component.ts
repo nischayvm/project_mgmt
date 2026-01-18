@@ -26,7 +26,7 @@ import { ToastContainerComponent } from '@/app/components/ui/toast-container.com
   styleUrl: './app.component.css',
 })
 export class AppComponent {
-  title = 'Employee Management';
+  title = 'EmpowerHub';
   readonly currentYear = new Date().getFullYear();
   private readonly router = inject(Router);
   private readonly activatedRoute = inject(ActivatedRoute);
