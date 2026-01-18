@@ -3,13 +3,31 @@ from faker import Faker
 import random
 from datetime import datetime, timedelta
 
+import sys
+import os
+
 # Configuration
-MONGO_URI = "mongodb://localhost:27017/"
+# Priority: Command Line Arg > Environment Variable > Localhost
+if len(sys.argv) > 1:
+    MONGO_URI = sys.argv[1]
+else:
+    MONGO_URI = os.getenv("DATABASE_URL", "mongodb://localhost:27017/")
+
+print(f"Connecting to MongoDB at: {MONGO_URI}")
+
 DB_NAME = "employee-management"
 fake = Faker()
 
 # Connect to MongoDB
-client = pymongo.MongoClient(MONGO_URI)
+try:
+    client = pymongo.MongoClient(MONGO_URI)
+    # Ping to verify connection
+    client.admin.command('ping')
+    print("Successfully connected to MongoDB!")
+except Exception as e:
+    print(f"Failed to connect to MongoDB: {e}")
+    sys.exit(1)
+
 db = client[DB_NAME]
 
 # Collections
